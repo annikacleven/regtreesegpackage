@@ -1,0 +1,34 @@
+Package: regtreeseg
+Title: Segmenting CNV and BAF data using regression tree methods
+Version: 0.0.0.9000
+Authors@R: 
+    c(person(given = "Annika",
+           family = "Cleven",
+           role = c("cre", "aut"),
+           email = "cleven.annika@mayo.edu",
+           comment = c(ORCID = "YOUR-ORCID-ID")),
+      person(given = "Chen",
+           family = "Wang",
+           role = c("aut")))
+Description: An implementation of a regression tree approach to segment Copy Number Variant locations.  The regression tree
+    approach can use the optimal complexity parameter value, the optimal complexity parameter and 3 iterations of a regression tree,
+    or the optimal parameter value, 3 iterations of a regression tree approach, and weighting the points farthest from zero.
+    By entering a dataframe the functions allow the user to visualize segmentation in the whole genome and on a single 
+    chromosome level.  They also return dataframes of information about the segmentation.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Suggests: rpart,
+    modelr,
+    dplyr,
+    magrittr,
+    ggplot2
+Imports: rpart,
+    modelr,
+    dplyr,
+    magrittr,
+    ggplot2
+
