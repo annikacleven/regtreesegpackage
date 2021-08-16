@@ -40,6 +40,8 @@ iterseg.genome <- function(df,png_filename, cpvalue = NA, conserve = FALSE, uppe
       names2 <- c(names2, i)
     }
   }
+
+  #Fitting Regression tree for each chromosome
   emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
   full_pred <- emptydf
   cplist <- c()
@@ -93,7 +95,7 @@ iterseg.genome <- function(df,png_filename, cpvalue = NA, conserve = FALSE, uppe
 
     df_split <- split(full_pred, full_pred$Chr)
     segments <- NULL
-
+    #Finding the chromosome names left
     for(chrid in names2){
       df_chr <- df_split[[chrid]]
 
@@ -144,9 +146,11 @@ iterseg.genome <- function(df,png_filename, cpvalue = NA, conserve = FALSE, uppe
 
   segmentdf <- full_pred[1,]
 
+  #Finding each segment
+
   lengthlist <- seq(2,length(full_pred$totalpred), by = 1)
   for(i in lengthlist){
-    if(full_pred[i,ncol(full_pred)] != full_pred[i-1,ncol(full_pred)]){
+    if(full_pred[i,"totalpred"] != full_pred[i-1,"totalpred"]){
       segmentdf <- rbind(segmentdf, full_pred[i-1,])
       segmentdf <- rbind(segmentdf, full_pred[i,])}
 
@@ -178,9 +182,9 @@ iterseg.genome <- function(df,png_filename, cpvalue = NA, conserve = FALSE, uppe
     "segments" = IDs,
     "cpdf" = cpdf
   )
-
+ #Calculating number of segments
   numsegments <- paste("Number of Segments:",toString(nrow(IDs)))
-
+#Plotting the segmentation
   WholeGenome.Plot(png_filename, chr = full_pred$chrN, s = full_pred$totalpred, x = full_pred$log2r, segmentnumber = numsegments, sample.name=deparse(substitute(df)))
 
   return(listOfDataframe)

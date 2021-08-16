@@ -53,8 +53,9 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
     #print(CP)
     }
 
-    #Optimal model with log2r and Start.Pos
 
+
+    #Estimating noise with mad diff
     mad.diff = mad(diff(subset$log2r))
 
     if (mad.diff != 0){
@@ -64,19 +65,18 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
     else{subset <- subset%>%
       dplyr::mutate(weight = 1)}
 
+    #Fitting regression tree to each chromosome
+
     model1<- rpart::rpart(log2r~Start.Pos, subset, weights = subset$weight,
                           control=rpart.control(cp = CP))
 
     #Creating full_pred df
     firstrow <- subset[1,]
-    # if((firstrow$Chr == "chr1")){full_pred <- subset%>%
-    #   modelr::add_predictions(model1)}
 
-    #else{
       pred_added <- subset%>%
       modelr::add_predictions(model1)
     full_pred <- rbind(full_pred, pred_added)
-    #}
+
     cplist <- c(cplist, CP)
   }
 
@@ -116,7 +116,9 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
       }
 
       cplist <- c(cplist, CP)
-      # fit the regression tree model
+
+      #estimating error
+
 
       mad.diff = mad(diff(df_chr[, ncol(df_chr)]))
 
@@ -128,6 +130,8 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
       else{df_chr%>%
           dplyr::mutate(weight = 1)}
 
+
+      #fitting the regression tree model
 
       model<- rpart::rpart(df_chr[, ncol(df_chr)]~Start.Pos, df_chr, weights = df_chr$weight,
                            control=rpart.control(cp = CP))
@@ -160,14 +164,18 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
   full_pred <- full_pred[order(full_pred$chrN),]
 
 
+  #Finding total prediction from all three iterations
+
   full_pred <- full_pred %>%
     dplyr::mutate(totalpred = pred + pred2 + pred3)
 
+
+  #Finding the segments
   segmentdf <- full_pred[1,]
 
   lengthlist <- seq(2,length(full_pred$totalpred), by = 1)
   for(i in lengthlist){
-    if(full_pred[i,ncol(full_pred)] != full_pred[i-1,ncol(full_pred)]){
+    if(full_pred[i,"totalpred"] != full_pred[i-1,"totalpred"]){
       segmentdf <- rbind(segmentdf, full_pred[i-1,])
       segmentdf <- rbind(segmentdf, full_pred[i,])}
 
@@ -200,7 +208,10 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
     "cpdf" = cpdf
   )
 
+  #Calculating number of segments
   numsegments <- paste("Number of Segments:",toString(nrow(IDs)))
+
+  #Plotting segmentation
 
   WholeGenome.Plot(png_filename, chr = full_pred$chrN, s = full_pred$totalpred, x = full_pred$log2r, segmentnumber = numsegments,
                    sample.name=deparse(substitute(df)), up.y=upper.y.lim, lo.y = lower.y.lim)

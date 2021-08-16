@@ -15,8 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-#devtools::load_all("/home/mayo/m252318/R/regtreeseg")
+```{r setup, include = FALSE}
 library(regtreeseg)
 ```
 
@@ -28,9 +27,21 @@ knitr::opts_chunk$set(fig.height = 8, fig.width = 12)
 
 ## Introduction
 
-This document is intended to give an overview on the methods and functions in the **regtreeseg** package.  The **regtreeseg** package utilizes many of ideas and uses the linear regression tree function from **RPART** by Terry M. Therneau and Elizabeth J. Atkinson.  
+This document aims to give an overview on the methods and functions in the **regtreeseg** package.  The **regtreeseg** package utilizes many of the ideas and uses the linear regression tree function from **RPART** by Terry M. Therneau and Elizabeth J. Atkinson.  
 
-The **regtreeseg** functions segment the copy number variants (CNV) from the genomic data.  The functions depend on the the $log_2$ ratio between the sample genome and the reference genome data, as well as the genomic position.
+The **regtreeseg** package functions segment the $log_2$ ratio relative to the copy number variants (CNV) signal  from the genomic data.The functions depend on the the $log_2$ ratio between the sample genome and the reference genome data, as well as the genomic position.  The functions use a regression tree approach with optimized cp values, iterative regression trees, weighting, or a combination to segment the data.
+
+The package has functions built to segment the whole genome and also segment individual chromosomes. 
+
+## Inputted Data
+
+```{r, warning = FALSE}
+data("genomesample")
+data("chr1sample")
+data("chr3sample")
+```
+
+The dataframes inputted into the **regtreesegfunctions** are required to have a columns labeled "log2r", "Start.Pos", and "Chr". These columns contain the $log_2$ ratio data, the genomic location, and the Chromosome. The chromosome column should include information in the format "chr1","chr2",..."chr22", "chrX".  In building these functions Mayo Clinic's WANDY formatted dataframes with and added "log2r" column were used.  More information on formatting can be found in the package's READ.ME.
 
 ## Fitting the Regression Tree 
 
@@ -38,16 +49,14 @@ A key parameter focused on in the linear regression trees used for segmentation 
 
 The function at default (when conserve == FALSE), the function looks at a list of cp values provided by rpart where the smallest value on that list is around .001. Based on the $log_2$ ratio and the genomic position data, the function determines which value has the smallest cross validation error and returns that value. 
 
+
 ```{r, warning = FALSE}
-data("genomesample")
-data("chr1sample")
-data("chr3sample")
 
 cpopt(chr1sample)
 ```
 
 
-In any statistical fitting example there is the game of trying to not overfit or underfit.  The larger the cp value, the larger the improvement must be for splitting the tree.  If for the situation it is better to underfit, than to overfit the option to have a more conservative cp value is available (conserve == TRUE).  When this option is chosen the function looks at a list of cp values provided by rpart where the smallest cp value is around .01. The function returns the value from the list that has the smallest cross validation error.
+In any statistical fitting example there is the game of trying to not overfit or underfit.  The larger the cp value, the larger the improvement must be for splitting the tree.  The option to have a more conservative cp value is available (conserve == TRUE).  When this option is chosen the function looks at a list of cp values provided by rpart where the smallest cp value is around .01. The function returns the value from the list that has the smallest cross validation error.
 
 ```{r, warning = FALSE}
 cpopt(chr1sample, conserve = TRUE)
@@ -55,21 +64,21 @@ cpopt(chr1sample, conserve = TRUE)
 ## Segmenting CNV's using the optimal cp values
 
 ### Whole Genome
-To segment the whole genome, there is one regression tree for each chromosome that predicts the segments in the data.  Each regression tree uses it's own optimal cp value based on the $log_2$ ratio and genomic position data from that chromosome.  A report of the optimal cp values can be found.
+To segment the whole genome, there is one regression tree for each chromosome that predicts the segments in the data.  Each regression tree uses it's own optimal cp value based on the $log_2$ ratio and genomic position data from that chromosome.  A report of the optimal cp values can be found (cpdf).
 
 ```{r, warning = FALSE}
 example1a <- seg.genome(genomesample, "example.png")
 example1a$cpdf
 ```
 
-There are other ways to customize the cp values. One way to use the conservative optimized cp value.  This is the equivalent to , using cpopt(sample, conserve == TRUE). This option produces the optimizes cp value where the minimum cp value choice is around .01.  
+There are other ways to customize the cp values. One way to use the conservative optimized cp value.  This is the equivalent to using the cp value from *cpopt(sample, conserve == TRUE)* for each individual chromosome.
 
 ```{r, warning = FALSE}
 example1b <- seg.genome(genomesample, "example.png", conserve = TRUE)
 example1b$cpdf
 ```
 
-The user can also specify the cp value to use for all of the cp value to be used for all the chromosomes. 
+The user can also specify the cp value to be used for all of the chromosomes. 
 
 ```{r, warning = FALSE}
 example1c <- seg.genome(genomesample, "example.png", cpvalue = .005)
@@ -78,23 +87,23 @@ example1c$cpdf
 
 After segmenting the the genomic data according to the assigned cp value a .png file is exported with a plot of the $log_2$ ratio data and the genomic position. The colors of the data alternate by even and odd chromosome to designate where one chromosome starts and where one begins.  The predictions from each regression tree are bound together to create a prediction for the whole genome.  The predictions are shown smoothed over the genomic data picking up the spikes and dips in the data. 
 
-The predictions from each of the regression trees, combined into one dataframe can be found.
+The predictions from each of the regression trees, combined into one dataframe can be found. The predictions dataframe includes the columns of the inputted dataframe, the predicted $log_2$ ratio from the regression trees ("pred"), the chromosome number as a string ("chrom"), and the chromosome number as a numeric value ("chrN").
 
 ```{r, warning = FALSE}
-head(example1a$regtreepred,10)
+head(example1a$regtreepred,5)
 ```
 
-The predictions are then converted into a dataframe with information on the segments.  The information in the dataframe is the chromsome("chr"), the chromosome number ("chrnumber"), the start of segment ("start"), the end of the segment ("end"), and the $log_2$ ratio predicted by the regression tree ("meanlog2ratio"), the median location of the segment ("location"), and the width of each of the segments ("widths).
+The predictions are then converted into a dataframe with information on the segments.  The information in the dataframe is the chromsome("chr"), the chromosome number ("chrnumber"), the start of segment ("start"), the end of the segment ("end"), the $log_2$ ratio predicted by the regression tree ("meanlog2ratio"), the median location of the segment ("location"), and the width of each of the segments ("widths).
 
 ```{r}
-head(example1a$segments,10)
+head(example1a$segments,5)
 ```
 
 ### Single Chromosome
 
 To segment a specific chromosome, the user can specify the chromosome of interest.  The user should enter the chromid in the same format as the Chr column (e.g "chr1", "chr2",...."chr22", "chrX").  The function will segment all of the data in the dataframe provided using the optimal cp value for each chromosome entered, but it will only return information for the chromosome of interest.
 
-To segment a single chromosome the user can input a dataframe with only one chromosome or a dataframe with multiple chromosome.  If a dataframe has multiple chromosomes, all the chromosomes will be segmented, but only the information for the specified chromosome will be returned and only the specified chromosome will be plotted.  To reduce computation time, inputting a dataframe with only the chromosome of interest is recommended. 
+To segment a single chromosome the user can input a dataframe with only one chromosome or a dataframe with multiple chromosomes.If a dataframe has multiple chromosomes, all the chromosomes will be segmented, but only the information for the specified chromosome will be returned and only the specified chromosome will be plotted.  To reduce computation time, inputting a dataframe with only the chromosome of interest is recommended. 
 
 
 ```{r,warning = FALSE}
@@ -103,7 +112,7 @@ example2 <- seg.chr(chr3sample, "chr3")
 
 Just as in the whole genome example, there are the same options for choosing a cp value.  The default will be to use the optimal cp value, but there are options to specify a cp value or use the conservative optimal cp value.
 
-Also, like the whole genome example this returns a dataframe with the (1) predictions from the regression tree, (2) a dataframe with the segments and corresponding information, (3) a dataframe with the cp value used to segment any of the data in the inputted dataframe, (4) and a plot of the chromosome segmented.
+Also, like the whole genome example this returns a dataframe with the predictions from the regression tree (regtreepred), a dataframe with the segments and corresponding information (segments), a dataframe with the cp value used to segment any of the data in the inputted dataframe (cpdf), and a plot of the chromosome data segmented (chrplot.
 
 ```{r}
 head(example2$regtreepred,5)
@@ -122,9 +131,9 @@ example2$chrplot
 
 ```
 
-## Segmenting using a 3 iterative regression tree approach (and optimal cp values)
+## Segmenting CNV's using a 3 iterative regression tree approach (and optimal cp values)
 
-As seen in the segmentation using only the optimized cp, the obvious spikes in the data are segmented out, but there are still segments seen by the human eye that the model misses. To help remedy this a iterative regression tree approach to segment the data was implemented.  Similar to the segmenting using the optimal cp value shown in the previous section, this option is available for the whole genome and a single chromosome.  The iterative method uses the optimal cp approach, but uses three iterations, and therefore three regression trees, to pick up spikes that were potentially missed in the first pass. The steps of the iterative regression tree approach for a single chromosome sample are as follows:
+As seen in the segmentation using only the optimized cp, the obvious spikes in the data are segmented out, but there are still segments that the model misses. To help remedy this an iterative regression tree approach to segment the data was implemented.  Similar to the segmenting using the optimal cp value shown in the previous section, this option is available for the whole genome and a single chromosome.  The iterative method uses the optimal cp approach, but uses three iterations, and therefore three regression trees, to pick up spikes that were potentially missed in the first pass. The steps of the iterative regression tree approach for a single chromosome sample are as follows:
 
 1. A regression tree using the optimal cp value based on the chromsome data is built for the chromosome
 2. The residual error from the regression tree's predictions (pred1) and the actual points are calculated
@@ -135,9 +144,9 @@ As seen in the segmentation using only the optimized cp, the obvious spikes in t
 7. A regression tree using the optimal cp value based on the residual data is built to fit the residual error
 8. The third iteration's regression tree predictions are added to the first two regression tree predictions.  The three regression tree predictions added together are the final prediction.
 
-This approach is set to 3 iterations.  At some point the residual error from the prediction does not have any spikes, so the regression tree is a straight line.  Thus, more iterations at some point are not beneficial.
+This approach is set to 3 iterations.  At some point the residual error from the prediction does not have any spikes, so the regression tree is a straight line.  Thus, more iterations are not beneficial.
 
-Using the **iterseg.chr** function this will return a dataframe with the regression tree prediction information for the chromosome of interest (regtreepred), a dataframe with the segments information for the chromosome of interest (segments), a dataframe that includes the cp values used for the first regression tree iteration (cpdf), a plot with the segmentation after 3 iterations (chrplot), and a list of plots that show the iterations (plots). 
+Using the **iterseg.chr** function this will return a dataframe with the regression tree prediction information for the chromosome of interest (regtreepred), a dataframe with the segments information for the chromosome of interest (segments), a dataframe that includes the cp values used for the first regression tree iteration (cpdf), a plot with the chromosome data segmented after 3 iterations (chrplot), and a list of plots that show the iterations (plots). 
 
 ```{r, warning = FALSE}
 example3 <- iterseg.chr(chr3sample, "chr3")
@@ -167,7 +176,7 @@ Using the **iterseg.genome** function works in the same way as the **iterseg.chr
 
 NOTE: Segmenting the entire genome could take up to a minute for computation. 
 
-```{r, WARNING = FALSE}
+```{r, warning=FALSE}
 example4 <- iterseg.genome(genomesample, "example4.png")
 ```
 
@@ -183,15 +192,15 @@ head(example4$segments, 5)
 example4$cpdf
 ```
 
-By using the iterative approach any spikes that are missed in the first regression tree are then hopefully picked up in the second regression tree.  Then from there, this idea applies again for the third regression tree to pick up any spikes missed by the first or second regression tree. 
+By using the iterative approach any spikes that are missed in the first regression tree are then hopefully picked up in the second regression tree.  Then , this idea applies again for the third regression tree to pick up any spikes missed by the first or second regression tree. 
 
 ### Weighting
 
-While the cp optimizing method is working to minimize the cross validation, but the clinical purpose of the regression tree is to segment out the spikes in the $log_2$ ratio data.  Iteration helps catch missed spikes, but weighting helps to incentivize the regression tree to reach for the points that are farther from a log2ratio of 0. If the log2ratio has a magnitude less than or equal to the mad.diff of all the log2ratio points, then the weight of the point is 1 (it is a “regular” point). This also avoids decimal weights, which seemed to cause issues.  If the log2ratio has a magnitude greater than the mad.diff, then the weight is the  magnitude of the log2ratio/mad.diff.  Thus, a larger log2r will have a larger weight to act as incentive for the regression tree. 
+While the cp optimizing method is working to minimize the cross validation, but the clinical purpose of the regression tree is to segment out the spikes in the $log_2$ ratio data.  Iteration helps catch missed spikes, but weighting helps to incentivize the regression tree to reach for the points that are farther from a log2ratio of 0. If the log2ratio has a magnitude less than or equal to the mad.diff of all the log2ratio points, then the weight of the point is 1 (it is a “regular” point). If the log2ratio has a magnitude greater than the mad.diff, then the weight is the  magnitude of the log2r/mad.diff.  Thus, a larger log2r will have a larger weight to act as incentive for the regression tree. 
 
 Using the weighted approach allows for the model to reach up closer to the top point of each segment.  The weighted approach may also be incentivized to follow spikes that have a high magnitude, but fewer points, a scenario where the model may previously have not segmented out any data.
 
-The **iterseg.chr.weighted** and **iterseg.genome.weighted** functions return the same items as their corresponding unweighted functions.  Honestly, weighting assists for some sets of genomic data and does not help or makes no change for other sets of data. The weight can work to help identify more spikes and allow the model to reach to the full extent of each spikes, but also has the potential to overfit the data (especially when the data is variable and has many extreme values).  The use of the weighted feature is up to the user.   
+The **iterseg.chr.weighted** and **iterseg.genome.weighted** functions return the same items as their corresponding unweighted functions.  Honestly, weighting assists for some sets of genomic data and does not help or makes no change for other sets of data. The weight can work to help identify more spikes and allow the model to reach to the full extent of each spikes, but also has the potential to overfit the data (especially when the data is variable and has many extreme values).  The tool of the weighted feature is up to the user.   
 
 ```{r, warning = FALSE}
 example5 <- iterseg.chr.weighted(chr3sample, "chr3")
@@ -217,5 +226,8 @@ example5$chrplot
 example5$plots
 ```
 
+### Conclusion
+
+Using the optimal cp value, iteration, weighting, or a combination of all three, $log_2$ ratio data in regards to copy number variants can be segmented using a regression tree approach to identify amplifications or deletions in the sample. 
 
 

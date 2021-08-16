@@ -25,6 +25,7 @@ seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpva
   lower.y.lim <- lower.y.lim
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
 
+  #Finding chromosome names
   names2 <- c()
   for(i in names){
     subset <- df%>%
@@ -34,40 +35,34 @@ seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpva
       names2 <- c(names2, i)
     }
   }
+
+  #Fitting each a regression tree for each chromosome
   emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
   full_pred <- emptydf
   cplist <- c()
   for(i in names2){
     subset <- df%>%
       dplyr::filter(Chr == i)
-    #if (cpvalue == NA){
     if (!is.na(cpvalue)){
-    CP <- cpvalue}
+      CP <- cpvalue}
     else if (conserve == TRUE){CP <- cpopt(subset, conserve = TRUE)}
     else {CP <- cpopt(subset)}
 
-
-
     model1<- rpart::rpart(log2r~Start.Pos, subset,
-                   control=rpart.control(cp = CP))
+                          control=rpart.control(cp = CP))
 
     firstrow <- subset[1,]
-    #print(firstrow)
-    # if((firstrow$Chr == "chr1")){full_pred <- subset%>%
-    #   modelr::add_predictions(model1)}
 
-    # else{
-      pred_added <- subset%>%
+    pred_added <- subset%>%
       modelr::add_predictions(model1)
     full_pred <- rbind(full_pred, pred_added)
-    # }
     cplist <- c(cplist, CP)
 
   }
 
   full_pred <- full_pred %>%
     dplyr::mutate(chrom = gsub("chr", "", Chr),
-           chrN = as.numeric(ifelse(Chr == "chrX", 23, ifelse(Chr == "chrY", 24, chrom))))
+                  chrN = as.numeric(ifelse(Chr == "chrX", 23, ifelse(Chr == "chrY", 24, chrom))))
 
   full_pred$chrN <- as.numeric(as.character(full_pred$chrN))
   full_pred <- full_pred[order(full_pred$chrN),]
@@ -75,65 +70,51 @@ seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpva
 
   cpdf <- data.frame(names2, cplist)
 
-  counter <- 1
-  df_split <- split(df, df$Chr)
-  segments <- NULL
-  for(chrid in names2)
-  {
-    #print(paste('segment chr', chrid))
-    df_chr <- df_split[[chrid]]
-    df_tmp <- data.frame(Start.Pos = 1:NROW(df_chr), log2r = df_chr$log2r)
-    CP2 <- cpdf[counter, 2]
-    #print(CP2)
-    counter <- counter +1
-    # fit the regression tree model
-    model<- rpart::rpart(log2r~Start.Pos, df_tmp,
-                  control=rpart.control(cp = CP2, maxdepth = 10))
+  segmentdf <- full_pred[1,]
 
-    if(!is.null(model$splits))
-    {
-      splitPoints = model$splits[, 4][order(model$splits[, 4])]
-      startIDs = c(1, ceiling(splitPoints))
-      startPos <- df_chr$Start.Pos[startIDs]
-      endIDs = c(floor(splitPoints), nrow(df_tmp))
-      endPos <-  df_chr$Start.Pos[endIDs]
-      meanlog2ratio = sapply(1:length(startIDs), function(x)  mean(df_chr$log2r[startIDs[x]:endIDs[x]],na.rm = T))
-      segments_chr <- data.frame(chr = chrid, start = startPos, end = endPos, meanlog2ratio = meanlog2ratio, location  = 0.5*(startPos+endPos), widths = endPos - startPos +1)
+  #Finding each segment
 
+  lengthlist <- seq(2,length(full_pred$pred), by = 1)
+  for(i in lengthlist){
+    if(full_pred[i,"pred"] != full_pred[i-1,"pred"]){
+      segmentdf <- rbind(segmentdf, full_pred[i-1,])
+      segmentdf <- rbind(segmentdf, full_pred[i,])}
 
-      segments <- rbind(segments, segments_chr)
-    }else{
-      segments_chr <- data.frame( chr = chrid,
-                                  start = df_chr$Start.Pos[1], end = df_chr$Start.Pos[nrow(df_chr)],
-                                  meanlog2ratio = mean(df_chr$log2r), location  = 0.5*(startPos+endPos), widths = endPos - startPos +1)
-    }
   }
-  segments <- segments %>%
-    dplyr::mutate(chrom = gsub("chr", "", chr),
-           chrN = ifelse(chr == "chrX", 23, ifelse(chr == "chrY", 24, chrid)),
-           chrnumber = as.numeric(ifelse(chr == "chrX", 23, ifelse(chr == "chrY", 24, chrom))))
+  segmentdf <- rbind(segmentdf, full_pred[nrow(full_pred),])
 
-  segments <- segments%>%
-    dplyr::select(chr, chrnumber, start, end, meanlog2ratio, location, widths)
-
-  segments$chrnumber <- as.numeric(as.character(segments$chrnumber))
-  segments <- segments[order(segments$chrnumber),]
+  segmentdf <- segmentdf %>%
+    dplyr::select(Chr, Start.Pos, chrN, pred)%>%
+    dplyr::mutate(row_num <- seq.int(nrow(segmentdf)))
 
 
-  numsegments <- paste("Number of Segments:",toString(nrow(segments)))
-  numsegments2 <- numsegments
-  png_filename <- png_filename
+  end.df <- segmentdf %>% dplyr::filter(row_number() %% 2 == 0)
+  start.df <- segmentdf %>% dplyr::filter(row_number() %% 2 == 1)
 
+  StartIDs = start.df$Start.Pos
+  EndIDs = end.df$Start.Pos
+  Chr = start.df$Chr
+  chrN = start.df$chrN
+  log2ratio = start.df$pred
+  location = .5 * ( StartIDs + EndIDs)
+  width = EndIDs - StartIDs +1
 
-  WholeGenome.Plot(png_filename, chr = full_pred$chrN ,x = full_pred$log2r, s = full_pred$pred, segmentnumber = numsegments, up.y=upper.y.lim, lo.y = lower.y.lim, is.chr.labeled=FALSE, is.txt.output=TRUE, output.digit=3, sample.name=deparse(substitute(df)))
+  IDs <- data.frame(Chr, chrN, StartIDs, EndIDs, log2ratio, location, width)
+  cpdf <- data.frame(names2, cplist)
+
 
   listOfDataframe = list(
     "regtreepred" = full_pred,
-    "segments" = segments,
+    "segments" = IDs,
     "cpdf" = cpdf
   )
+  #Calculating number of segments
+  numsegments <- paste("Number of Segments:",toString(nrow(IDs)))
+  #Plotting the segmentation
+  WholeGenome.Plot(png_filename, chr = full_pred$chrN, s = full_pred$pred, x = full_pred$log2r, segmentnumber = numsegments, sample.name=deparse(substitute(df)))
 
   return(listOfDataframe)
+
 
 }
 
