@@ -10,7 +10,8 @@
 #' @param cpvalue  Specified constant cp value for the regression tree to use instead of the optimal cp value
 #' @return A .png file with the whole genome plot and segmentation,
 #' a list containing a dataframe with all of the segmentation data(segments),
-#' and a dataframe with the predictions from the regression tree(regtreepred)
+#' and a dataframe with the predictions from the regression tree(regtreepred), and a dataframe with the cp used
+#' for each chromosome (cpdf)
 #' @examples
 #' example <- seg.genome(datafr127, png_filename = "datafr.png",upper.y.lim = 5, lower.y.lim = -5)
 #' example$regtreepred
@@ -19,7 +20,7 @@
 #' @export
 
 
-seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpvalue = NA){
+seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpvalue = NA, conserve = FALSE){
   upper.y.lim <- upper.y.lim
   lower.y.lim <- lower.y.lim
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
@@ -33,26 +34,33 @@ seg.genome <- function(df, png_filename, upper.y.lim = 5, lower.y.lim = -5, cpva
       names2 <- c(names2, i)
     }
   }
-
+  emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
+  full_pred <- emptydf
   cplist <- c()
   for(i in names2){
     subset <- df%>%
       dplyr::filter(Chr == i)
     #if (cpvalue == NA){
-    if (is.na(cpvalue)){
-    CP <- cpopt(subset)}
-    else(CP <- cpvalue)
+    if (!is.na(cpvalue)){
+    CP <- cpvalue}
+    else if (conserve == TRUE){CP <- cpopt(subset, conserve = TRUE)}
+    else {CP <- cpopt(subset)}
+
+
 
     model1<- rpart::rpart(log2r~Start.Pos, subset,
                    control=rpart.control(cp = CP))
 
+    firstrow <- subset[1,]
+    #print(firstrow)
+    # if((firstrow$Chr == "chr1")){full_pred <- subset%>%
+    #   modelr::add_predictions(model1)}
 
-    if((subset$Chr == "chr1")){full_pred <- subset%>%
-      modelr::add_predictions(model1)}
-
-    else{pred_added <- subset%>%
+    # else{
+      pred_added <- subset%>%
       modelr::add_predictions(model1)
-    full_pred <- rbind(full_pred, pred_added)}
+    full_pred <- rbind(full_pred, pred_added)
+    # }
     cplist <- c(cplist, CP)
 
   }

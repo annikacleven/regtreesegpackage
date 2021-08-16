@@ -38,7 +38,8 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
       names2 <- c(names2, i)
     }
   }
-
+  emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
+  full_pred <- emptydf
   cplist <- c()
   for(i in names2){
     subset <- df%>%
@@ -67,12 +68,16 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
                           control=rpart.control(cp = CP))
 
     #Creating full_pred df
-    if((subset$Chr == "chr1")){full_pred <- subset%>%
-      modelr::add_predictions(model1)}
+    firstrow <- subset[1,]
+    # if((firstrow$Chr == "chr1")){full_pred <- subset%>%
+    #   modelr::add_predictions(model1)}
 
-    else{pred_added <- subset%>%
+    #else{
+      pred_added <- subset%>%
       modelr::add_predictions(model1)
-    full_pred <- rbind(full_pred, pred_added)}
+    full_pred <- rbind(full_pred, pred_added)
+    #}
+    cplist <- c(cplist, CP)
   }
 
   #Calculating the Error between the model and the log2r
@@ -186,11 +191,13 @@ iterseg.genome.weighted <- function(df,png_filename, numiterations = 3, cpvalue 
   width = EndIDs - StartIDs +1
 
   IDs <- data.frame(Chr, chrN, StartIDs, EndIDs, weightedavglog2ratio, location, width)
+  cpdf <- data.frame(names2, cplist)
 
 
   listOfDataframe = list(
     "regtreepred" = full_pred,
-    "segments" = IDs
+    "segments" = IDs,
+    "cpdf" = cpdf
   )
 
   numsegments <- paste("Number of Segments:",toString(nrow(IDs)))

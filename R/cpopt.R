@@ -15,13 +15,13 @@
 cpopt <- function(df, conserve = FALSE){
 
   if(conserve == FALSE){
-    model<-rpart::rpart(log2r~Start.Pos, data = df, control = rpart.control(cp = .01))
+    model<-rpart::rpart(log2r~Start.Pos, data = df, control = rpart::rpart.control(cp = .01))
     df2 = as.data.frame(model[["frame"]][["complexity"]])
 
     nrow <- nrow(df2)
     smallcp <-df2[nrow, ]
 
-    model1b <- rpart::rpart(log2r~Start.Pos, data = df, control = rpart.control(cp = smallcp))
+    model1b <- rpart::rpart(log2r~Start.Pos, data = df, control = rpart::rpart.control(cp = smallcp))
     cp <- as.data.frame(model1b$cptable[,1])
     cp<- cp%>%
       dplyr::mutate(id = as.numeric(rownames(cp)),
@@ -37,8 +37,8 @@ cpopt <- function(df, conserve = FALSE){
       dplyr::mutate(id = as.numeric(rownames(cp)),
              relerror = model1b$cptable[,3])
 
-    datafr <- full_join(cp, xerror)
-    full_df <- full_join(datafr, relerror)
+    datafr <- suppressMessages(full_join(cp, xerror))
+    full_df <- suppressMessages(full_join(datafr, relerror))
 
     id <- which.min(full_df$xerror)
 

@@ -25,10 +25,19 @@ Suggests: rpart,
     modelr,
     dplyr,
     magrittr,
-    ggplot2
+    ggplot2, 
+    knitr, 
+    rmarkdown
 Imports: rpart,
     modelr,
     dplyr,
     magrittr,
     ggplot2
-
+VignetteBuilder: knitr
+Depends: 
+    R (>= 2.10),
+    rpart,
+    modelr,
+    dplyr,
+    ggplot2,
+    magrittr

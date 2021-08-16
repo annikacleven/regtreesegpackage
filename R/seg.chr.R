@@ -5,9 +5,12 @@
 #'
 #' @param df A dataframe with columns of Start.Pos, log2r, and Chr columns. The Chr column should have format like "chr1", "chr21", "chrY".
 #' @param chromid The chromosome id, for example "chr5"
+#' @param cpvalue Specified constant cp value for the regression tree to use instead of the optimal cp value
+#' @param conserve This will use the conservative cpopt method
 #' @return A list containing a dataframe with all of the segmentation data (segments),
 #' and a dataframe with the predictions from the regression tree (regtreepred),
-#' and a plot of the segmentation and chromosome data
+#' a plot of the segmentation and chromosome data, and a dataframe with the optimal cp used
+#' for each chromosome on the first round of iteration(cpdf)
 #' @examples
 #' example <- seg.chr(datafr, "chr5")
 #' example$regtreepred
@@ -16,7 +19,7 @@
 #' @author Annika Cleven
 #' @export
 
-seg.chr <- function(df, chromid){
+seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
 
   names2 <- c()
@@ -30,26 +33,27 @@ seg.chr <- function(df, chromid){
   }
 
   cplist <- c()
+  emptydf <- data.frame(matrix(ncol = 9, nrow = 0))
+  full_pred <- emptydf
   for(i in names2){
     subset <- df%>%
       dplyr::filter(Chr == i)
-    if (is.na(cpvalue)){
-    CP <- cpopt(subset)}
-    else{CP <- cpvalue}
+    if (!is.na(cpvalue)){
+      CP <- cpvalue}
+    else if (conserve == TRUE){CP <- cpopt(subset, conserve = TRUE)}
+    else {CP <- cpopt(subset)}
 
     model1<- rpart::rpart(log2r~Start.Pos, subset,
                           control=rpart.control(cp = CP))
 
 
-    if((subset$Chr == "chr1")){full_pred <- subset%>%
-      modelr::add_predictions(model1)}
 
-    else{pred_added <- subset%>%
+    pred_added <- subset%>%
       modelr::add_predictions(model1)
-    full_pred <- rbind(full_pred, pred_added)}
-    cplist <- c(cplist, CP)
 
-  }
+    full_pred <- rbind(full_pred, pred_added)
+    cplist <- c(cplist, CP)}
+
 
   full_pred <- full_pred %>%
     dplyr::mutate(chrom = gsub("chr", "", Chr),
@@ -57,71 +61,56 @@ seg.chr <- function(df, chromid){
 
   full_pred$chrN <- as.numeric(as.character(full_pred$chrN))
   full_pred <- full_pred[order(full_pred$chrN),]
+  full_pred <- full_pred %>%
+    filter(Chr == chromid)
+
+
+  #######
+  segmentdf <- full_pred[1,]
+
+
+  for(i in (2:length(full_pred$pred))){
+    if(full_pred[i,"pred"] != full_pred[i-1,"pred"]){
+      segmentdf <- rbind(segmentdf, full_pred[i-1,])
+      segmentdf <- rbind(segmentdf, full_pred[i,])}
+  }
+
+
+  segmentdf <- rbind(segmentdf, full_pred[nrow(full_pred),])
+
+
+  segmentdf <- segmentdf %>%
+    dplyr::select(Chr, Start.Pos, chrN, pred)
+
+  end.df <- segmentdf %>% dplyr::filter(row_number() %% 2 == 0)
+
+  start.df <- segmentdf %>% dplyr::filter(row_number() %% 2 == 1)
+
+
+  StartIDs = start.df$Start.Pos
+  EndIDs = end.df$Start.Pos
+  Chr = start.df$Chr
+  chrN = start.df$chrN
+  log2ratio = start.df$pred
+  location = .5 * ( StartIDs + EndIDs)
+  width = EndIDs - StartIDs +1
+
+  segments <- data.frame(Chr, chrN, StartIDs, EndIDs, log2ratio, location, width)
 
   cpdf <- data.frame(names2, cplist)
 
-  counter <- 1
-  df_split <- split(df, df$Chr)
-  segments <- NULL
-  for(chrid in names2)
-  {
-    #print(paste('segment chr', chrid))
-    df_chr <- df_split[[chrid]]
-    df_tmp <- data.frame(Start.Pos = 1:NROW(df_chr), log2r = df_chr$log2r)
-    CP2 <- cpdf[counter, 2]
-    #print(CP2)
-    counter <- counter +1
-    # fit the regression tree model
-    model<- rpart::rpart(log2r~Start.Pos, df_tmp,
-                         control=rpart.control(cp = CP2))
-
-    if(!is.null(model$splits))
-    {
-      splitPoints = model$splits[, 4][order(model$splits[, 4])]
-      startIDs = c(1, ceiling(splitPoints))
-      startPos <- df_chr$Start.Pos[startIDs]
-      endIDs = c(floor(splitPoints), nrow(df_tmp))
-      endPos <-  df_chr$Start.Pos[endIDs]
-      meanlog2ratio = sapply(1:length(startIDs), function(x)  mean(df_chr$log2r[startIDs[x]:endIDs[x]],na.rm = T))
-      segments_chr <- data.frame(Chr = chrid, start = startPos, end = endPos, meanlog2ratio = meanlog2ratio, location  = 0.5*(startPos+endPos), widths = endPos - startPos +1)
-
-
-      segments <- rbind(segments, segments_chr)
-    }else{
-      segments_chr <- data.frame( Chr = chrid,
-                                  start = df_chr$Start.Pos[1], end = df_chr$Start.Pos[nrow(df_chr)],
-                                  meanlog2ratio = mean(df_chr$log2r), location  = 0.5*(startPos+endPos), widths = endPos - startPos +1)
-    }
-  }
-  segments <- segments %>%
-    dplyr::mutate(chrom = gsub("chr", "", Chr),
-                  chrN = ifelse(Chr == "chrX", 23, ifelse(Chr == "chrY", 24, chrid)),
-                  chrnumber = as.numeric(ifelse(Chr == "chrX", 23, ifelse(Chr == "chrY", 24, chrom))))
-
-  segments <- segments%>%
-    dplyr::select(Chr, chrnumber, start, end, meanlog2ratio, location, widths)
-
-  segments$chrnumber <- as.numeric(as.character(segments$chrnumber))
-  segments <- segments[order(segments$chrnumber),]
-
-  chrsegments <- segments %>%
-    dplyr::filter(Chr == chromid)
-
-  chr_pred <- full_pred %>%
-    dplyr::filter(Chr == chromid)
-
-  plot <- chr_pred%>%
+  chrplot <- full_pred%>%
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), color = "blue", size = 1)+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred), color = "red", size = 1)+
     ggplot2::labs(title = paste(deparse(substitute(df)), ":", chromid), x = "Bin index", y = "Allele Imbalance",
-                  subtitle = paste("Number of Segments:", nrow(chrsegments)))
+                  subtitle = paste("Number of Segments:", nrow(segments)))
 
   listOfDataframe = list(
-    "regtreepred" = chr_pred,
-    "segments" = chrsegments,
+    "regtreepred" = full_pred,
+    "segments" = segments,
     "cpdf" = cpdf,
-    "plot" = plot
+    "chrplot" = chrplot
 
   )
 

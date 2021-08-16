@@ -1,0 +1,214 @@
+---
+title: "regtreeseg"
+output: rmarkdown::html_vignette
+#vignette:
+ # %\VignetteIndexEntry{regtreeseg}
+ # \usepackage[regtreeseg]{inputenc}
+ # %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction to Regression Tree Segmentation using regtreeseg Routines
+```{r}
+devtools::load_all("/home/mayo/m252318/R/regtreeseg")
+library(dplyr)
+library(ggplot2)
+library(rpart)
+
+
+
+s131L001 <- read.delim("/research/bsi/archive/PI/Wang_Chen_m092469/secondary/s205843.ClinicalCNV/whole_genome/2018-10-18_clinical_hg19/wandy/run.id_wandy_ver0p98/s_131-D01S_L001_within_run.id/s_131-D01S_L001_within_run.id_bin_normalized_covg.txt")
+s131L001 <- s131L001 %>%
+  mutate(log2r = log2(nmlz.cvg + 1e-3))%>%
+  filter(is.reliable.bin == 1)
+
+```
+
+## Introduction
+
+This document is intended to give an overview on the methods and functions in the **regtreeseg** package.  The **regtreeseg** package utilizes many of ideas and uses the linear regression tree function from **RPART** by Terry M. Therneau and Elizabeth J. Atkinson.  
+
+The **regtreeseg** functions segment the copy number variants (CNV) from the genomic data.  The functions depend on the the $log_2$ ratio between the sample genome and the reference genome data, as well as the genomic position.
+
+## Fitting the Regression Tree 
+
+A key parameter focused on in the linear regression trees used for segmentation in **regtreeseg** is the complexity parameter.  The complexity parameter can be thought of as the "minimum benefit" that a the $R^2$ must improve by adding the split in the tree for the split in the tree to be included.  The **cpopt** function returns the complexity parameter (cp) value that has the lowest cross validation error.  The error is referred to by xerror in the **rpart** package. 
+
+The function at default (when conserve == FALSE), the function looks at a list of cp values provided by rpart where the smallest value on that list is around .001. Based on the $log_2$ ratio and the genomic position data, the function determines which value has the smallest cross validation error and returns that value. 
+
+```{r, warning = FALSE}
+cpopt(s131L001)
+```
+
+
+In any statistical fitting example there is the game of trying to not overfit or underfit.  The larger the cp value, the larger the improvement must be for splitting the tree.  If for the situation it is better to underfit, than to overfit the option to have a more conservative cp value is available (CONSERVE == TRUE)..  When this option is chosen the function looks at a list of cp values provided by rpart where the smallest cp value is around .01. The function returns the value from the list that has the smallest cross validation error.
+
+```{r, warning = FALSE}
+cpopt(s131L001, conserve = TRUE)
+```
+## Segmenting CNV's using the optimal cp values
+
+### Whole Genome
+To segment the whole genome, there is one regression tree for each chromosome that predicts the segments in the data.  Each regression tree uses it's own optimal cp value based on the $log_2$ ratio and genomic position data from that chromosome.  A report of the optimal cp values can be found.
+
+```{r, warning = FALSE}
+example <- seg.genome(s131L001, "example.png")
+example$cpdf
+```
+There are other ways to customize the cp values.  There is a way to access the conservative option of the optimized cp value.  
+
+```{r, warning = FALSE}
+example <- seg.genome(s131L001, "example.png", conserve = TRUE)
+example$cpdf
+```
+
+The user can also specify the cp value to use for all of the cp value. 
+
+```{r, warning = FALSE}
+example <- seg.genome(s131L001, "example.png", cpvalue = .005)
+example$cpdf
+```
+
+After segmenting the the genomic data a .png file is exported with a plot of the $log_2$ ratio data and the genomic position. The colors of the data alternate by even and odd chromosome to designate where one chromosome starts and where one begins. 
+
+The predictions from each of the regression trees, combined into one dataframe can be found.
+
+```{r, warning = FALSE}
+example <- seg.genome(s131L001, "example.png")
+head(example$regtreepred,10)
+```
+
+These predictions were then transformed to be in a dataframe with each of the segments in the genome. 
+
+```{r}
+head(example$segments,10)
+```
+
+### Single Chromosome
+
+To segment a specific chromosome, the user can specify the chromosome of interest.  The user should enter the chromid in the same format as the Chr column (e.g "chr1", "chr2",...."chr22", "chrX").  The function will segment all of the data in the dataframe provided using the optimal cp value for each chromosome entered, but it will only return information for the chromosome of interest.
+
+```{r,warning = FALSE}
+example2 <- seg.chr(s131L001, "chr5")
+```
+
+Just as in the whole genome example, there are the same options for choosing a cp value.  The default will be to use the optimal cp value, but there are options to specify a cp value or use the conservative optimal cp value.
+
+Also, like the whole genome example this returns a dataframe with the (1) predictions from the regression tree, (2) a dataframe with the segments and corresponding information, (3) a dataframe with the cp value used to segment any of the data in the inputted dataframe, (4) and a plot of the chromosome segmented.
+
+```{r}
+example2$cpdf
+```
+
+```{r}
+head(example2$regtreepred,5)
+```
+
+```{r}
+head(example2$segments, 5)
+```
+
+```{r}
+example2$chrplot
+```
+
+## Segmenting using a 3 iterative regression tree approach (and optimal cp values)
+
+As seen from the plot in the chromosomal plot above, there are some obvious copy number spikes that the regression tree fails to reach.  To help remedy this a iterative regression tree approach to segment the data implemeted.  Similar to the segmenting using the optimal cp value shown in the previous section, this option is available for the whole genome and a single chromosome.  The steps of the iterative regression tree approach for a single chromosome sample are as follows:
+
+1. A regression tree using the optimal cp value based on the chromsome data is built for the chromosome
+2. The residual error from the regression tree's predictions (pred1) and the actual points are calculated
+3. A regression tree using the optimal cp value based on the residual data is built to fit the residual error
+4. The residual error from the regression tree's predictions (pred2) and the actual residual points are calculated
+5. The two iterations of regression tree's predictions are added together (pred1 + pred2)
+6. The residual error from the added regression tree's predictions (pred1+pred2) and the actual points are calculated
+7. A regression tree using the optimal cp value based on the residual data is built to fit the residual error
+8. The third iteration's regression tree predictions are added to the first two regression tree predictions.  The three regression tree predictions added together are the final prediction.
+
+
+Using the **iterseg.chr** function this will return a dataframe with the regression tree prediction information for the chromosome of interest, a dataframe with the segments information for the chromosome of interest, a dataframe that includes the cp values used for the first regression tree iteration, a plot with the segmentation after 3 iterations, and a list of plots that show the iterations. 
+
+```{r, warning = FALSE}
+example3 <- iterseg.chr(s131L001, "chr5")
+```
+
+```{r}
+head(example3$regtreepred,5)
+```
+
+```{r, warning = FALSE}
+head(example3$segments, 5)
+```
+
+```{r}
+example3$cpdf
+```
+
+```{r}
+example3$chrplot
+```
+
+```{r}
+example3$plots
+```
+
+Using the **iterseg.genome** function works in the same way as the **iterseg.chr** function, but returns slightly different information. This function returns a dataframe that includes the regression tree prediction information, a dataframe with the segments information, and a dataframe that includes the cp values used for the first regression tree iteration, and a .png file with the segmentation after 3 iterations for the whole genome.
+
+```{r}
+example4 <- iterseg.genome(s131L001, "example4.png")
+```
+
+```{r}
+head(example4$regtreepred, 5)
+```
+
+```{r}
+head(example4$segments)
+```
+
+```{r}
+example4$cpdf
+```
+
+By using the iterative approach any spikes that are missed in the first regression tree are then hopefully picked up in the second regression tree.  Then from there, this idea applies again for the third regression tree to pick up any spikes missed by the first or second regression tree. 
+
+### Weighting
+
+While the cp optimizing method is working to minimize the cross validation, but the clinical purpose of the regression tree is to segment out the spikes in the $log_2$ ratio data.  Iteration helps catched missed spikes, but weighting helps to incentivize the regression tree to reach for the points that are farther from a log2ratio of 0. If the log2ratio has a magnitude less than or equal to the mad.diff of all the log2ratio points, then the weight of the point is 1 (it is a “regular” point). This also avoids decimal weights, which seemed to cause issues.  If the log2ratio has a magnitude greater than the mad.diff, then the weight is the  magnitude of the log2ratio/mad.diff.  Thus, a larger log2r will have a larger weight to act as incentive for the regression tree.  
+
+The **iterseg.chr.weighted** and **iterseg.genome.weighted** functions return the same items as their corresponding unweighted functions.  In all honestly, weighting assists for some sets of genomic data and does not help or makes no change for other sets of data.  The weight can work to help identify more spikes and allow the model to reach to the full extent of each spikes, but also has the potential to overfit the data (especially when the data is variable and has many extreme values).  The use of the weighted feature is up to the user.   
+
+```{r, warning = FALSE}
+example5 <- iterseg.chr.weighted(s131L001, "chr5")
+```
+
+```{r}
+head(example5$regtreepred,5)
+```
+
+```{r, warning = FALSE}
+head(example5$segments, 5)
+```
+
+```{r}
+example5$cpdf
+```
+
+```{r}
+example5$chrplot
+```
+
+```{r}
+example5$plots
+```
+
+
+
+
+
+
+
+
+
+
