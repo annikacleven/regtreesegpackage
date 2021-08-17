@@ -18,7 +18,10 @@
 #' example$plot
 #' @author Annika Cleven
 #' @export
+#'
+#'
 
+#August 17th
 seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
 
