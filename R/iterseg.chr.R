@@ -7,6 +7,7 @@
 #' @param df A dataframe with columns of Start.Pos, log2r, and Chr columns.  The Chr column should have format like "chr1", "chr21", "chrY".
 #' @param chromid The chromosome of interest in the form "chr3" or "chr21"
 #' @param cpvalue Specify a constant cp value for the regression tree to use instead of the optimal cp value
+#' @param conserve  This will use the conservative cpopt method
 #' @return  A list containing a dataframe with all of the segmentation data (segments),
 #' and a dataframe with the predictions from the regression tree (regtreepred),
 #' a plot of the chromosome data and final predictions (chrplot), a list 5 plots of each step in iteration (plots), and the cp values used
@@ -22,6 +23,8 @@
 
 iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
+
+  #Getting names
   names2 <- c()
   for(i in names){
     subset <- df%>%
@@ -32,8 +35,9 @@ iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     }
   }
 
+  #Fitting the regression tree and getting regression tree predictions
   cplist <- c()
-  emptydf <- data.frame(matrix(ncol = 9, nrow = 0))
+  emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
   full_pred <- emptydf
   for(i in names2){
     subset <- df%>%
@@ -132,7 +136,7 @@ iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   full_pred$chrN <- as.numeric(as.character(full_pred$chrN))
   full_pred <- full_pred[order(full_pred$chrN),]
 
-
+#Finding the total prediction
   full_pred <- full_pred %>%
     dplyr::mutate(totalpred = pred + pred2 + pred3)
 
@@ -140,6 +144,7 @@ iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     filter(Chr == chromid)
 
 
+  #Getting Segments
   segmentdf <- full_pred[1,]
 
   lengthlist <- seq(2,length(full_pred$totalpred), by = 1)

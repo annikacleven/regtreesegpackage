@@ -21,10 +21,12 @@
 #'
 #'
 
-#August 17th
+
 seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
 
+
+#Finding Names
   names2 <- c()
   for(i in names){
     subset <- df%>%
@@ -35,8 +37,9 @@ seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     }
   }
 
+  #Fitting the regression tree and getting predictions
   cplist <- c()
-  emptydf <- data.frame(matrix(ncol = 9, nrow = 0))
+  emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
   full_pred <- emptydf
   for(i in names2){
     subset <- df%>%
@@ -69,6 +72,7 @@ seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
 
 
   #######
+  #Getting segments
   segmentdf <- full_pred[1,]
 
 
@@ -100,8 +104,10 @@ seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
 
   segments <- data.frame(Chr, chrN, StartIDs, EndIDs, log2ratio, location, width)
 
+  #Tracking the cp values
   cpdf <- data.frame(names2, cplist)
 
+  #Plotting
   chrplot <- full_pred%>%
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), color = "blue", size = 1)+

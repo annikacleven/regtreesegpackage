@@ -8,7 +8,8 @@
 #' @param png_filename A .png filename
 #' @param upper.y.lim The upper limit for the y value of the plot
 #' @param lower.y.lim The lower limit for the y value of the plot
-#' @param cpvalue Specify a constant cp value for the regression tree to use instead of the optimal cp value
+#' @param cpvalue Specify a constant cp value for the regression tree to use instead of the optimal cp value\
+#' @param conserve  This will use the conservative cpopt method
 #'
 #' @return A .png file with the whole genome plot and segmentation data,
 #'  a list containing a dataframe with all of the segmentation data (segments),

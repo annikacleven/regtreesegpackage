@@ -226,8 +226,9 @@ example5$chrplot
 example5$plots
 ```
 
-### Conclusion
+### References
 
-Using the optimal cp value, iteration, weighting, or a combination of all three, $log_2$ ratio data in regards to copy number variants can be segmented using a regression tree approach to identify amplifications or deletions in the sample. 
+1. T.M Therneau and E.J Atkinson. An introduction to recursive partitioning using the rpart routines. Mayo Foundation, 2019.
+
 
 

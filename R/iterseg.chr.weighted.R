@@ -7,7 +7,7 @@
 #' @param df A dataframe with columns of Start.Pos, log2r, and Chr columns.The Chr column should have format like "chr1", "chr21", "chrY".
 #' @param chromid The chromosome of interest in the form "chr3" or "chr21"
 #' @param cpvalue Specify a constant cp value for the regression tree to use instead of the optimal cp value
-#'
+#' @param conserve  This will use the conservative cpopt method
 #' @return A list containing a dataframe with all of the segmentation data (segments),
 #' and a dataframe with the predictions from the regression tree (regtreepred), a dataframe with the cp values from the
 #' first iteration (cpdf) a plot of ,the chromosome data and final predictions (chrplot),
@@ -24,6 +24,8 @@
 
 iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ifelse(is.null(c(levels(df$Chr))), names <- c(unique(df$Chr)), names <- c(levels(df$Chr)))
+
+  #Getting names
   names2 <- c()
   for(i in names){
     subset <- df%>%
@@ -34,13 +36,14 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     }
   }
 
+  #Fitting the regression tree and getting the regression tree model
   cplist <- c()
-  emptydf <- data.frame(matrix(ncol = 9, nrow = 0))
+  emptydf <- data.frame(matrix(ncol = ncol(df) + 1, nrow = 0))
   full_pred <- emptydf
   for(i in names2){
     subset <- df%>%
       dplyr::filter(Chr == i)
-    #print(subset)
+
 
     if (!is.na(cpvalue)){
       CP <- cpvalue}
@@ -66,14 +69,14 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
 
     pred_added <- subset%>%
       modelr::add_predictions(model1)
-    #print(pred_added)
+
     full_pred <- rbind(full_pred, pred_added)
     cplist <- c(cplist, CP)
 
   }
 
 
-  #cplist <- c(cplist, CP)
+
   #Calculating the Error between the model and the log2r
   #Creating chrN so that chromosomes can be sorted numerically
   full_pred <- full_pred %>%
@@ -88,7 +91,7 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   ####Other iterations
   counter = 1
   pred = 2
-  #cplist <- c()
+
   for (i in c(1:iterations)) {
     counterstr <- as.character(counter)
     errorcol <- paste("error",counterstr,sep="")
@@ -102,7 +105,7 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     full_pred <- emptydf2
     for(chrid in names2){
       df_chr <- df_split[[chrid]]
-      # print(df_chr)
+
 
       if (!is.na(cpvalue)){
         CP <- cpvalue}
@@ -111,7 +114,6 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
         CP <- cpopt(df_chr)}
 
 
-      #cplist <- c(cplist, CP)
       # fit the regression tree model
 
 
@@ -163,6 +165,7 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
   full_pred <- full_pred %>%
     filter(Chr == chromid)
 
+  #Getting segments
 
   segmentdf <- full_pred[1,]
 
@@ -193,11 +196,6 @@ iterseg.chr.weighted <- function(df, chromid, cpvalue = NA, conserve = FALSE){
 
   segments <- data.frame(Chr, chrN, StartIDs, EndIDs, log2ratio, location, width)
 
-  # chrpreds <- full_pred %>%
-  #   filter(Chr == chromid)
-  #
-  # chrIDs <- IDs %>%
-  #   filter(Chr == chromid)
 
   ##VISUALIZATIONS
 
