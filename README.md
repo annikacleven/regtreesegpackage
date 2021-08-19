@@ -55,11 +55,16 @@ To begin the iterative regression tree approach, the data is segmented using a r
 
 <br/>
 
+![image](https://user-images.githubusercontent.com/76005312/130142335-138fdb8f-9727-4a78-9f58-37d1b4d7be67.png)
+
+
 The functions in this package segment either a single chromosome or the full genome.  When segmenting the full genome each chromosome is segmented separately and then each chromosome's segmentation is included in a full report. 
 
 ## Demonstration
 
 More detailed instructions on how to execute each of the segmentation methods can be viewed in the vignette. Here a description of the flow of the function and an example of how to use the iterative regression tree approach with optimal cp values for a single chromosome is provided.
+
+![image](https://user-images.githubusercontent.com/76005312/130142374-10ad1ae5-82a7-4044-bec0-b1013be48238.png)
 
 
 ```{r, eval = FALSE}
