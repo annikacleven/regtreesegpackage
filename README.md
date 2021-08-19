@@ -44,6 +44,8 @@ There are three segmentation methods in this package:
 
 3. Segmentation using an optimal cp value, 3 regression tree iterations, and weighting
 
+![image](https://user-images.githubusercontent.com/76005312/130142191-b5f9b69e-7b3d-410d-8884-e093af8c0e4c.png)
+
 <br/>
 <br/>
 
