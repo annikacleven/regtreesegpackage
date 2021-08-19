@@ -176,10 +176,6 @@ There are three segmentation methods in this package:
   and weighting
 \end{enumerate}
 
-Each of the segmentation methods in this package follow a general path.
-
-\begin{center}\includegraphics[width=1\linewidth]{/home/mayo/m252318/R/functionworkflow2.png} \end{center}
-
 The use of an iterative regression tree approach allows for the tree to
 catch events in the CNV profile on the first round and then catch other
 less prominent events in the next iterations. This approach identifies
@@ -200,8 +196,6 @@ cpopt another regression tree is fitted to this residual data (pred3).
 Then the predictions from each iteration are added together
 (pred1+pred2+pred3) for the final prediction.
 
-\begin{center}\includegraphics[width=1\linewidth]{/home/mayo/m252318/R/iteration} \end{center}
-
 The functions in this package segment either a single chromosome or the
 full genome. When segmenting the full genome each chromosome is
 segmented separately and then each chromosome's segmentation is included
@@ -215,8 +209,6 @@ methods can be viewed in the vignette. Here a description of the flow of
 the function and an example of how to use the iterative regression tree
 approach with optimal cp values for a single chromosome is provided.
 
-\begin{center}\includegraphics[width=1\linewidth]{/home/mayo/m252318/R/itersegworkflow} \end{center}
-
 \begin{Shaded}
 \begin{Highlighting}[]
 \FunctionTok{library}\NormalTok{(regtreeseg)}
@@ -226,10 +218,6 @@ approach with optimal cp values for a single chromosome is provided.
 \NormalTok{demo}\SpecialCharTok{$}\NormalTok{segments}
 \end{Highlighting}
 \end{Shaded}
-
-A screenshot of the chrplot is shown below:
-
-\begin{center}\includegraphics[width=1\linewidth]{/home/mayo/m252318/R/iterchrchr3sample} \end{center}
 
 \hypertarget{dataframe-input-specification}{%
 \subsection{Dataframe input

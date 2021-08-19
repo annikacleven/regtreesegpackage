@@ -1,9 +1,15 @@
 ---
 title: "README.Rmd"
-output: word_document
+output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
+
+```{r, include = FALSE}
+install.packages("knitr")
+library(knitLatex)
+library(tinytex)
+```
 
 # Introduction
 
@@ -38,21 +44,14 @@ There are three segmentation methods in this package:
 
 3. Segmentation using an optimal cp value, 3 regression tree iterations, and weighting
 
-
-Each of the segmentation methods in this package follow a general path.
-
-
-```{r echo=FALSE, out.width="100%", fig.align='center'}
-knitr::include_graphics("/home/mayo/m252318/R/regtreeseg/man/figures/functionworkflow2.jpg")
-```
+<br/>
+<br/>
 
 The use of an iterative regression tree approach allows for the tree to catch events in the CNV profile on the first round and then catch other less prominent events in the next iterations.  This approach identifies more CNV events, than a single regression tree. 
 
 To begin the iterative regression tree approach, the data is segmented using a regression tree with the optimal complexity parameter (unless specified otherwise). The predictions from this regression tree are the first iteration (pred1).  Then the residual error is calculated. Using the optimal complexity parameter (cp) for this residual data a regression tree is fitted to the data. This regression tree predicts the spikes in the residual error with an explanatory variable of the genomic location (pred2). Then the predictions from the initial regression tree (pred1) and the second regression tree (pred2) are added together to create a new prediction.  Then a third iteration follows.  The residuals are calculated from the combined prediction of pred1+pred2  and using the cpopt another regression tree is fitted to this residual data (pred3).  Then the predictions from each iteration are added together (pred1+pred2+pred3) for the final prediction.
 
-```{r echo=FALSE, out.width="100%", fig.align='center'}
-knitr::include_graphics("/home/mayo/m252318/R/regtreeseg/man/figures/iteration.jpg")
-```
+<br/>
 
 The functions in this package segment either a single chromosome or the full genome.  When segmenting the full genome each chromosome is segmented separately and then each chromosome's segmentation is included in a full report. 
 
@@ -60,9 +59,6 @@ The functions in this package segment either a single chromosome or the full gen
 
 More detailed instructions on how to execute each of the segmentation methods can be viewed in the vignette. Here a description of the flow of the function and an example of how to use the iterative regression tree approach with optimal cp values for a single chromosome is provided.
 
-```{r echo=FALSE, out.width="100%", fig.align='center'}
-knitr::include_graphics("/home/mayo/m252318/R/regtreeseg/man/figures/itersegworkflow.jpg")
-```
 
 ```{r, eval = FALSE}
 library(regtreeseg)
@@ -70,12 +66,6 @@ data("chr3sample")
 demo <- iterseg.chr(chr3sample, chromid = "chr3")
 demo$chrplot
 demo$segments
-```
-
-A screenshot of the chrplot is shown below:
-
-```{r echo=FALSE, out.width="100%", fig.align='center'}
-knitr::include_graphics("/home/mayo/m252318/R/iterchrchr3sample.png")
 ```
 
 
