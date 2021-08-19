@@ -1,9 +1,6 @@
----
-title: "README.Rmd"
-output: pdf_document
-editor_options: 
-  chunk_output_type: console
----
+
+
+# regtreeseg
 
 ```{r, include = FALSE}
 install.packages("knitr")
