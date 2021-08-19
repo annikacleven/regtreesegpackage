@@ -2,15 +2,10 @@
 
 # regtreeseg
 
-```{r, include = FALSE}
-install.packages("knitr")
-library(knitLatex)
-library(tinytex)
-```
 
 # Introduction
 
-The goal of this package is to segment events in a CNV's profile based on the $log_2$ ratio and the genomic position using a regression tree approach. A $log_2$ ratio above zero means that there is a amplification in copy number in the sample genome compared to the reference genome.  On the other hand, if the $log_2$ ratio is below zero then there is a deletion in the copy number in the sample genome compared to the reference genome.
+The goal of this package is to segment events in a CNV's profile based on the log_2 ratio and the genomic position using a regression tree approach. A log_2 ratio above zero means that there is a amplification in copy number in the sample genome compared to the reference genome.  On the other hand, if the log_2 ratio is below zero then there is a deletion in the copy number in the sample genome compared to the reference genome.
 
 This package provides a way to segment a CNV's profile and visualize the segmentation of individual chromosomes and the full genome. 
 
@@ -31,7 +26,7 @@ The regtreeseg vignette includes sample code on how to use each of the segmentin
 
 ## Overview
 
-Using a regression tree approach set up in the 'rpart' package, CNV $log_2$ ratio data can be segmented with multiple approaches. In the regression tree approaches the response variable is the $log_2$ ratio and the explanatory variable is the genomic location. Therefore the data is partitioned into segments that predict the $log_2$ ratio for the genomic positions in each segment. In regtreeseg, the regression trees use the complexity parameter optimized to have the minimum cross validation error.  The complexity parameter is the minimum increase in the $R^2$ that the split in the regression tree must create for the split to be included. The innovation of this package is using an iteration of regression trees to create a regression tree that catches all events in the CNV profile.  Beyond the iteration, an option to weight points farther from the $log_2$ ratio of 0 is available.
+Using a regression tree approach set up in the 'rpart' package, CNV log_2 ratio data can be segmented with multiple approaches. In the regression tree approaches the response variable is the log_2 ratio and the explanatory variable is the genomic location. Therefore the data is partitioned into segments that predict the log_2 ratio for the genomic positions in each segment. In regtreeseg, the regression trees use the complexity parameter optimized to have the minimum cross validation error.  The complexity parameter is the minimum increase in the R^2 that the split in the regression tree must create for the split to be included. The innovation of this package is using an iteration of regression trees to create a regression tree that catches all events in the CNV profile.  Beyond the iteration, an option to weight points farther from the log_2 ratio of 0 is available.
 
 There are three segmentation methods in this package:
 
