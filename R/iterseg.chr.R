@@ -183,28 +183,28 @@ iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), size = .5, color = "blue")+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred), color = "red", size = 1)+
-    ggplot2::labs(title = "Predictions After One Iteration", x = "Bin Index", y = "Allele Imbalance")
+    ggplot2::labs(title = "Predictions After One Iteration", x = "Bin Index", y = "CNV Profile")
 
 
   b <- df%>%
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = error1), size = .5, color = "blue")+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred2), color = "red", size = 1)+
-    ggplot2::labs(title = "Residual Error Predictions", x = "Bin Index", y = "Allele Imbalance")
+    ggplot2::labs(title = "Residual Error Predictions", x = "Bin Index", y = "CNV Profile")
 
 
   c <- df%>%
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), size = .5, color = "blue")+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred + pred2), color = "red", size = 1)+
-    ggplot2::labs(title = "Predictions After Two Iterations", x = "Bin Index", y = "Allele Imbalance")
+    ggplot2::labs(title = "Predictions After Two Iterations", x = "Bin Index", y = "CNV Profile")
 
 
   d <- df%>%
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = error2), size = .5, color = "blue")+
     ggplot2::geom_step(ggplot2::aes(Start.Pos,pred3), color = "red", size = 1)+
-    ggplot2::labs(title = "Residual Error Predictions", x= "Bin Index", y = "Allele Imbalance")
+    ggplot2::labs(title = "Residual Error Predictions", x= "Bin Index", y = "CNV Profile")
 
 
   e <- df%>%
@@ -212,7 +212,7 @@ iterseg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), size = .5, color = "blue")+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred + pred2 + pred3), color = "red", size = 1)+
     ggplot2::labs(title = paste("Chromid:", chromid, ", Number of segments:", nrow(segments)),
-                  subtitle = "Predictions After Three Iterations", x = "Bin Index", y = "Allele Imbalance")
+                  subtitle = "Predictions After Three Iterations", x = "Bin Index", y = "CNV Profile")
 
   plotlist = list("iter1" = a, "error1" = b, "iter2" = c, "error2" = d, "iter3"= e )
 

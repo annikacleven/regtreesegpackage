@@ -112,7 +112,7 @@ seg.chr <- function(df, chromid, cpvalue = NA, conserve = FALSE){
     ggplot2::ggplot()+
     ggplot2::geom_point(ggplot2::aes(x = Start.Pos, y = log2r), color = "blue", size = 1)+
     ggplot2::geom_step(ggplot2::aes(Start.Pos, pred), color = "red", size = 1)+
-    ggplot2::labs(title = paste(deparse(substitute(df)), ":", chromid), x = "Bin index", y = "Allele Imbalance",
+    ggplot2::labs(title = paste(deparse(substitute(df)), ":", chromid), x = "Bin index", y = "CNV Profile",
                   subtitle = paste("Number of Segments:", nrow(segments)))
 
   listOfDataframe = list(

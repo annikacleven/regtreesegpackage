@@ -1,15 +1,88 @@
 ---
 title: "README.Rmd"
-output: pdf_document
+output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
-# regtreeseg package
+```{r, include = FALSE}
+library(knitr)
+library(knitLatex)
+library(tinytex)
+```
 
-The goal of this package is to segment CNV data based on the log2r between the sample genome and the reference genome.  A value above zero in log2r means that there is a amplification in copy number in the sample genome compared to the reference genome.  On the other hand, if the log2r is below zero then there is a deletion in the copy number in the sample genome compared to the refernce genome.
+# Introduction
 
-Using a regression tree approach set up in the 'rpart' package, CNV data can be segmented with multiple approaches.
+The goal of this package is to segment events in a CNV's profile based on the $log_2$ ratio and the genomic position using a regression tree approach. A $log_2$ ratio above zero means that there is a amplification in copy number in the sample genome compared to the reference genome.  On the other hand, if the $log_2$ ratio is below zero then there is a deletion in the copy number in the sample genome compared to the reference genome.
 
-There are 8 functions in this package. 6 of the functions segment the data in someway, and the other functions- WholeGenome.Plot and cpopt - accompany those.
+This package provides a way to segment a CNV's profile and visualize the segmentation of individual chromosomes and the full genome. 
+
+
+## Installation
+
+To install the most updated version of this package use the following:
+
+```{r, eval = FALSE}
+install.packages("devtools")
+library(devtools)
+devtools::install_github("annikacleven/regtreeseg")
+```
+
+## Resources
+
+The regtreeseg vignette includes sample code on how to use each of the segmenting functions.  The vignette also dives into optional operations of the functions and more details on the complexity parameter used to segment the genomic data. The vignette is available upon download of the package.
+
+## Overview
+
+Using a regression tree approach set up in the 'rpart' package, CNV $log_2$ ratio data can be segmented with multiple approaches. In the regression tree approaches the response variable is the $log_2$ ratio and the explanatory variable is the genomic location. Therefore the data is partitioned into segments that predict the $log_2$ ratio for the genomic positions in each segment. In regtreeseg, the regression trees use the complexity parameter optimized to have the minimum cross validation error.  The complexity parameter is the minimum increase in the $R^2$ that the split in the regression tree must create for the split to be included. The innovation of this package is using an iteration of regression trees to create a regression tree that catches all events in the CNV profile.  Beyond the iteration, an option to weight points farther from the $log_2$ ratio of 0 is available.
+
+There are three segmentation methods in this package:
+
+1. Segmentation using an optimal complexity parameter (cp)
+
+2. Segmentation using an optimal cp value and 3 regression tree iterations
+
+3. Segmentation using an optimal cp value, 3 regression tree iterations, and weighting
+
+
+Each of the segmentation methods in this package follow a general path.
+
+```{r echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics("/home/mayo/m252318/R/functionworkflow2.png.jpg")
+```
+
+The use of an iterative regression tree approach allows for the tree to catch events in the CNV profile on the first round and then catch other less prominent events in the next iterations.  This approach identifies more CNV events, than a single regression tree. 
+
+To begin the iterative regression tree approach, the data is segmented using a regression tree with the optimal complexity parameter (unless specified otherwise). The predictions from this regression tree are the first iteration (pred1).  Then the residual error is calculated. Using the optimal complexity parameter (cp) for this residual data a regression tree is fitted to the data. This regression tree predicts the spikes in the residual error with an explanatory variable of the genomic location (pred2). Then the predictions from the initial regression tree (pred1) and the second regression tree (pred2) are added together to create a new prediction.  Then a third iteration follows.  The residuals are calculated from the combined prediction of pred1+pred2  and using the cpopt another regression tree is fitted to this residual data (pred3).  Then the predictions from each iteration are added together (pred1+pred2+pred3) for the final prediction.
+
+```{r echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics("/home/mayo/m252318/R/iteration.jpg")
+```
+
+The functions in this package segment either a single chromosome or the full genome.  When segmenting the full genome each chromosome is segmented separately and then each chromosome's segmentation is included in a full report. 
+
+## Demonstration
+
+More detailed instructions on how to execute each of the segmentation methods can be viewed in the vignette. Here a description of the flow of the function and an example of how to use the iterative regression tree approach with optimal cp values for a single chromosome is provided.
+
+```{r echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics("/home/mayo/m252318/R/itersegworkflow.jpg")
+```
+
+```{r, eval = FALSE}
+library(regtreeseg)
+data("chr3sample")
+demo <- iterseg.chr(chr3sample, chromid = "chr3")
+demo$chrplot
+demo$segments
+```
+
+A screenshot of the chrplot is shown below:
+
+```{r echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics("/home/mayo/m252318/R/iterchrchr3sample.png")
+```
+
 
 ## Dataframe input specification
 The inputs of these functions require a dataframe that has column names specifically labeled as "Start.Pos", "log2r", and "Chr".
@@ -17,75 +90,10 @@ The "Start.Pos" column is the bin index or genomic location which the log2ratio 
 The "log2r" column is the log2ratio that between the sample genome ad the reference genome.
 The "Chr" column is the chromosome of interest.  The chromosomes should be labeled exactly as "chr1", "chr2", "chr22", "chrX", "chrY". 
 
-## How to use each function:
+<br/>
+<br/>
+<br/>
+<br/>
 
-## *cpopt*:
-### Inputs: dataframe(required), conserve (optional)
-### Output: the optimal cp value as a numeric value
-The cpopt takes a dataframe that has columns Start.Pos and log2r and returns the optimal cp for the data to reduce the cross validation error.
-The conserve option allows the user to make the optimal cp choice more conservative.  The lower the cp value, the regression tree will have more splits in the regression tree.  The cp value is the minimum benefit that a split in the tree must improve the R^2 value by to be included in the tree.  Optimizing the cp value is a game between underfitting and overfitting.  The default for the function is CONSERVE = FALSE.  When this is set the minimum cp value is around .001.  If overfitting is a worry CONSERVE = TRUE will make so the minimum cp value is around .01.  
-
-## *WholeGenome.Plot*:
-
-The whole genome data plots data for the whole genome. The whole genome also has a smoothing option.  This option is used to show the segmentations. 
-
-## Segmenting using optimal cp:
-
-## *seg.genome*:
-### Inputs: dataframe(required), png_filename(required), upper.y.lim (optional), lower.y.lim (optional), cpvalue (optional), conserve (optional)
-### Outputs: .png file with the whole genome plot and segmentation, a list containing a dataframe with all of the segmentation data(segments), and a dataframe with the predictions from the regression tree(regtreepred), and a dataframe with the optimal cp used for each chromosome (cpdf)
-
-The seg.genome function segments all the data from the dataframe genome. The dataframe must have columns named specifically "Start.Pos", "log2r", and "Chr" (more about the specifications can be found in the section 'Data input specifications'). The function splits the data by chromosome and the segments that subset of the data using the cpopt for that chromosome.  Then all the chromosome segmentations are binded together.  The first part of the segmentation is getting the predictions from the regression tree approach. These can be found in the 'regtreepred' dataframe.Then the second part is the predictions being translated into Start, End, Chr, ChrN, log2r, location, and width segments that can be found in the 'segments' dataframe.  Since each chromosome is segmented individually with its optimal cp value, the cp values used for each of the chromosomes are reported.
-
-The seg.genome function returns a png file at the png_filename that the user provides.  The WholeGenome.Plot function is used to create the plot.  The optional inputs of upper.y.lim and lower.y.lim control the range of the y values on the plot.
-
-A cpvalue can be specified in the input.  By specifying a cp value, this cp value will be used to segment each chromosome. If no cp value is specified the optimal cp value will be used.   The conservative optimal cp value can be specified in the input.
-
-
-
-## *seg.chr*
-### Inputs: dataframe(required), chromid (required), cpvalue (optional), conserve (optional)
-### Outputs: A list containing a dataframe with all of the segmentation data (segments),and a dataframe with the predictions from the regression tree (regtreepred), a plot of the segmentation and chromosome data (chrplot), and a dataframe with the optimal cp used for each chromosome on the first round of iteration(cpdf)
-
-The seg.chr function segments all the data from the dataframe.  The dataframe must have columns named specifically "Start.Pos", "log2r", and "Chr" (more about the specifications can be found in the section 'Data input specifications').  The dataframe can include any number of chromosomes.  All will be segmented but only information on the chromosome of interest will be returned. The "chromid" indicates the chromosome of interest and it should be entered in the same format as the Chr column in the dataframe. The The first part of the segmentation is getting the predictions from the regression tree approach.  These can be found in the 'regtreepred' dataframe.  The second part is the predictions being translated into Start, End, Chr, ChrN, log2r, location, and information for each of those segments.  This can be found in the 'segments' dataframe.  
-
-A cpvalue can be specified in the input.  By specifying a cp value, this cp value will be used to segment each chromosome. If no cp value is specified the optimal cp value will be used.  The conservative optimal cp value can be specified in the input. 
-
-## Segmenting using optimal cp and regression tree iteration:
-
-## *iterseg.genome*
-### Inputs: dataframe(required), png_filename(required), upper.y.lim (optional), lower.y.lim (optional), cpvalue (optional), conserve (optional)
-### Outputs: A list containing a dataframe with all of the segmentation data (segments), and a dataframe with the predictions from the regression tree (regtreepred), a plot of the chromosome data and final predictions (chrplot), a list 5 plots of each step in iteration (plots), and the cp values used for each chromosome on the first iteration (cpdf)
-
-The iterseg.genome function segments all the data from the dataframe.  The dataframe must have columns named specifically "Start.Pos", "log2r", and "Chr" (more about the specifications can be found in the section 'Data input specifications').  The function splits the data by chromsome and segments that subset of data using the cpopt for that chromosome.  Then all the predictions are binded together for a full dataframe with the regression tree predictions for the whole genome.   Then the residual error is calculated between the predictions and the actual points.  Following this, using the cpopt for this residual data a regression tree is fitted to the data.  Then the predictions from the initial regression tree (pred1) and the second regression tree (pred2)are added together. Then a third iteration follows.  The residuals are calculated from the pred1+pred2 and using the cpopt another regression tree is fitted to the data (pred3).  Then the predictions from each iteration are added together (pred1+pred2+pred3) for the final prediction.  These can be found at "regtreepred'.  These predictions are then translated in to Start, End, Chr, ChrN, log2r, location, and information for each segment in the genome. This can be found in the 'segments' dataframe.
-
-The iterseg.genome function returns a png file at the png_filename that the user provides.  The WholeGenome.Plot function is used to create the plot.  The optional inputs of upper.y.lim and lower.y.lim control the range of the y values on the plot.
-
-A cpvalue can be specified in the input.  By specifying a cp value, this cp value will be used to segment each chromosome. If no cp value is specified the optimal cp value will be used. The conservative optimal cp value can be specified in the input.  
-
-## *iterseg.chr*
-### Inputs: dataframe(required), chromid (required), cpvalue (optional), conserve (optional)
-### Outputs: A list containing a dataframe with all of the segmentation data (segments), and a dataframe with the predictions from the regression tree (regtreepred), a plot of the chromosome data and final predictions (chrplot), a list 5 plots of each step in iteration (plots), and the cp values used for each chromosome on the first iteration (cpdf)
-
-The iterseg.chr function segments all the data from the dataframe. The dataframe must have columns named specifically "Start.Pos", "log2r", and "Chr" (more about the specifications can be found in the section 'Data input specifications'). The dataframe can include any number of chromosomes.  All will be segmented but only information on the chromosome of interest will be returned. The "chromid" indicates the chromosome of interest and it should be entered in the same format as the Chr column in the dataframe. The data is segmented using a regression tree with the optimal cp for the specific chromosome.  The predictions from this iteration are the first iteration (pred1).  Then the residual error is calculated between the predictions and actual data points.  using the cpopt for this residual data a regression tree is fitted to the data.  Then the predictions from the initial regression tree (pred1) and the second regression tree (pred2)are added together. Then a third iteration follows.  The residuals are calculated from the pred1+pred2 and using the cpopt another regression tree is fitted to the data (pred3).  Then the predictions from each iteration are added together (pred1+pred2+pred3) for the final prediction.  These can be found at "regtreepred'.  These predictions are then translated in to Start, End, Chr, ChrN, log2r, location, and information for each segment in the genome. This can be found in the 'segments' dataframe.
-
-The final predictions can be found plotted in 'chrplot'.  Seeing the step by step for the 3 iterations can be seen in 'plots'.
-
-A cpvalue can be specified in the input.  By specifying a cp value, this cp value will be used to segment each chromosome. If no cp value is specified the optimal cp value will be used.  The conservative optimal cp value can be specified in the input.
-
-## Segmenting using optimal cp, regression tree iteration, and weighiting:
-
-## *iterseg.genome.weighted*
-### Inputs: dataframe(required), png_filename(required), upper.y.lim (optional), lower.y.lim (optional), cpvalue (optional), conserve (optional)
-### Outputs: A list containing a dataframe with all of the segmentation data (segments), and a dataframe with the predictions from the regression tree (regtreepred), a plot of the chromosome data and final predictions (chrplot), a list 5 plots of each step in iteration (plots), and the cp values used for each chromosome on the first iteration (cpdf)
-
-The iterseg.genome.weighted function works the same as iterseg.genome, but it weights the points. The weighting works to incentivize the regression tree to reach for the points that are farther from a log2ratio of 0. If the log2ratio has a magnitude less than or equal to the mad.diff of all the log2ratio points, then the weight of the point is 1 (it is a “regular” point). This also avoids decimal weights, which seemed to cause issues.  If the log2ratio has a magnitude greater than the mad.diff, then the weight is the  magnitude of the log2ratio/mad.diff.  Thus, a larger log2r will have a larger weight to act as incentive for the regression tree. 
-
-## *iterseg.chr*
-### Inputs: dataframe(required), chromid (required), cpvalue (optional), conserve (optional)
-### Outputs: A list containing a dataframe with all of the segmentation data (segments), and a dataframe with the predictions from the regression tree (regtreepred), a plot of the chromosome data and final predictions (chrplot), a list 5 plots of each step in iteration (plots), and the cp values used for each chromosome on the first iteration (cpdf)
-
-The iterseg.chr.weighted function works the same as the iterseg.chr.weighted function, but it weights the points. 
-The iterseg.genome.weighted function works the same as iterseg.genome, but it weights the points. The weighting works to incentivize the regression tree to reach for the points that are farther from a log2ratio of 0. If the log2ratio has a magnitude less than or equal to the mad.diff of all the log2ratio points, then the weight of the point is 1 (it is a “regular” point). This also avoids decimal weights, which seemed to cause issues.  If the log2ratio has a magnitude greater than the mad.diff, then the weight is the  magnitude of the log2ratio/mad.diff.  Thus, a larger log2r will have a larger weight to act as incentive for the regression tree. 
 
 

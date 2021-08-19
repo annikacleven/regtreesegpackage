@@ -25,7 +25,7 @@
 
 
 WholeGenome.Plot <- function(png_filename, chr, x, s=NA, segmentnumber = NA,
-                             sample.name="sample", ylab = "Allele Imbalance", BAF = F,
+                             sample.name="sample", ylab = "CNV Profile", BAF = F,
                              up.y=3, lo.y = -3, plot.log = "",
                              odd.col='magenta', even.col='dodgerblue', x.col = 'blueviolet', y.col = "darkmagenta", plot.cex=3, plot.pch = ".", plot.bg.color = "white",
                              is.chr.labeled=TRUE, is.txt.output=TRUE, output.digit=3,
