@@ -17,12 +17,16 @@ To install the most updated version of this package use the following:
 ```{r, eval = FALSE}
 install.packages("devtools")
 library(devtools)
-devtools::install_github("annikacleven/regtreeseg")
+devtools::install_github("annikacleven/regtreeseg", build_vignettes = TRUE)
 ```
 
 ## Resources
 
 The regtreeseg vignette includes sample code on how to use each of the segmenting functions.  The vignette also dives into optional operations of the functions and more details on the complexity parameter used to segment the genomic data. The vignette is available upon download of the package.
+
+To view the vignette, first install the package as seen above.  Then, in the R Studio pane that has Plots, Files, Packages, and Help, choose "Packages".  Then find and choose the regtreeseg package. In the Documentation section, choose "User guides, package vignettes, and other documentation". Choose "regtreeseg::regtreeseg" to view the vignette. 
+
+There is also the choice to choose "HTML" and then "Show in a new Window".
 
 ## Overview
 
