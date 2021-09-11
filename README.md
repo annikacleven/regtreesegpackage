@@ -17,7 +17,8 @@ To install the most updated version of this package use the following:
 ```{r, eval = FALSE}
 install.packages("devtools")
 library(devtools)
-devtools::install_github("annikacleven/regtreeseg", build_vignettes = TRUE)
+devtools::install_github("annikacleven/regtreesegpackage", build_vignettes = TRUE)
+library(regtreeseg)
 ```
 
 ## Resources
