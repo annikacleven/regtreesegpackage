@@ -21,9 +21,9 @@ devtools::install_github("annikacleven/regtreesegpackage", build_vignettes = TRU
 library(regtreeseg)
 ```
 
-## Resources
+## Resources and Vignette
 
-The regtreeseg vignette includes sample code on how to use each of the segmenting functions.  The vignette also dives into optional operations of the functions and more details on the complexity parameter used to segment the genomic data. The vignette is available upon download of the package.
+The regtreeseg provides more in depth explanation of the functions and provides sample code for the reader. The regtreeseg vignette includes sample code on how to use each of the segmenting functions.  The vignette also dives into optional operations of the functions and more details on the complexity parameter used to segment the genomic data. The vignette is available upon download of the package.
 
 To view the vignette, first install the package as seen above.  Then, in the R Studio pane that has Plots, Files, Packages, and Help, choose "Packages".  Then find and choose the regtreeseg package. In the Documentation section, choose "User guides, package vignettes, and other documentation". Choose "regtreeseg::regtreeseg" to view the vignette. 
 
@@ -31,7 +31,7 @@ There is also the choice to choose "HTML" and then "Show in a new Window".
 
 ## Overview
 
-Using a regression tree approach set up in the 'rpart' package, CNV log_2 ratio data can be segmented with multiple approaches. In the regression tree approaches the response variable is the log_2 ratio and the explanatory variable is the genomic location. Therefore the data is partitioned into segments that predict the log_2 ratio for the genomic positions in each segment. In regtreeseg, the regression trees use the complexity parameter optimized to have the minimum cross validation error.  The complexity parameter is the minimum increase in the R^2 that the split in the regression tree must create for the split to be included. The innovation of this package is using an iteration of regression trees to create a regression tree that catches all events in the CNV profile.  Beyond the iteration, an option to weight points farther from the log_2 ratio of 0 is available.
+Using a regression tree approach set up in the 'rpart' package, CNV log_2 ratio data can be segmented with multiple approaches. In the regression tree approaches the response variable is the log_2 ratio and the explanatory variable is the genomic location. Therefore the data is partitioned into segments that predict the log_2 ratio for the genomic positions in each segment. In regtreeseg, the regression trees use the complexity parameter optimized to have the minimum cross validation error.  The complexity parameter is the minimum increase in the R^2 that the split in the regression tree must create for the split to be included. The innovation of this package is using an iteration of regression trees to create a regression tree that catches all events in the CNV profile.  Beyond the iteration, an option to weight points farther from the log_2 ratio of 0 is available.  Using iteration with no weighting is typically the best option for segmenting the data.
 
 There are three segmentation methods in this package:
 
@@ -59,7 +59,7 @@ The functions in this package segment either a single chromosome or the full gen
 
 ## Demonstration
 
-More detailed instructions on how to execute each of the segmentation methods can be viewed in the vignette. Here a description of the flow of the function and an example of how to use the iterative regression tree approach with optimal cp values for a single chromosome is provided.
+More detailed instructions on how to execute each of the segmentation methods can be viewed in the vignette.  A description of the flow of the function is provided below. Since the iterative approach with optimal cp value is the typically the best option an example of how to use the iterative regression tree approach with optimal cp values for a single chromosome is provided.  The other functions (seg.chr, iterseg.chr.weighted) are run in a similar way.  There are more examples of these examples and segmentation of the full genome in the R package vignette2. 
 
 ![image](https://user-images.githubusercontent.com/76005312/130142374-10ad1ae5-82a7-4044-bec0-b1013be48238.png)
 
@@ -74,10 +74,12 @@ demo$segments
 
 
 ## Dataframe input specification
-The inputs of these functions require a dataframe that has column names specifically labeled as "Start.Pos", "log2r", and "Chr".
+This package was created to segment the genomic data from an in-house Mayo Clinic system that provided the normalized coverage at each bin location.  The log_2 ratio for each location can be calculated from the normalized coverage.  In the common data format there are other columns of information that are provided, but this package has generalized the input structure for more accesible usage. 
+
+The inputs of the functions in this package require a dataframe that has column names specifically labeled as "Start.Pos", "log2r", and "Chr".
 The "Start.Pos" column is the bin index or genomic location which the log2ratio comes from.
-The "log2r" column is the log2ratio that between the sample genome ad the reference genome.
-The "Chr" column is the chromosome of interest.  The chromosomes should be labeled exactly as "chr1", "chr2", "chr22", "chrX", "chrY". 
+The "log2r" column is the log2ratio between the sample genome and the reference genome.
+The "Chr" column is the chromosome of interest.  The chromosomes should be labeled exactly as "chr1", "chr2", "chr22", "chrX", "chrY".
 
 <br/>
 <br/>
